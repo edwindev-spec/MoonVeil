@@ -24,3 +24,4 @@ jobs:
       - run: python tools/install_luau.py
       - run: python -B -m unittest discover -s tests -v
       - run: python -m moonveil --version
+      - run: python -m moonveil doctor

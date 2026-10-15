@@ -1,4 +1,4 @@
-# MoonVeil 1.4.5 Deobfuscator — 0.12.0
+# MoonVeil 1.4.5 Deobfuscator — 0.13.0
 
 Versión mejorada del [proyecto de UnstableGrape](https://github.com/UnstableGrape/Moonveil-1.4.5-Deobfuscator). Recupera código Luau a partir de entradas **completas de MoonVeil 1.4.5**, con reconstrucción de funciones y control de flujo, artefactos de análisis y comprobación mediante las herramientas oficiales de Luau.
 
@@ -16,7 +16,10 @@ Activa el entorno con `source .venv/bin/activate` en Linux/macOS o `.venv\Script
 python -m pip install -e .
 python tools/install_luau.py
 python -m moonveil --version
+python -m moonveil doctor
 ```
+
+`doctor` comprueba Python, el runtime de Luau y el compilador, y termina con código 2 si no hay un runtime utilizable (`--json` para salida legible por máquinas).
 
 El instalador descarga **Luau 0.722 oficial**, comprueba su SHA-256 y coloca el runtime y compilador en `.tools/luau-0.722`. Soporta Linux y Windows x86-64 y el paquete oficial de macOS. Para otras arquitecturas, compila [Luau](https://github.com/luau-lang/luau) y configura sus rutas.
 
@@ -26,6 +29,7 @@ También puedes proporcionar un runtime existente mediante `--luau`, `LUAU_PATH`
 
 ```sh
 python -m moonveil analyze entrada.lua --json
+python -m moonveil analyze a.lua b.lua c.lua --json   # lista de resultados
 python -m moonveil decompile entrada.lua -o recuperado.luau --artifacts artefactos
 ```
 
@@ -56,7 +60,7 @@ python -m moonveil instrument entrada.lua -o instrumentado.luau
 python -m moonveil import-protocol protocolo.txt -o artefactos
 ```
 
-`extract` e `instrument` son herramientas de bajo nivel para envoltorios con límites directos reconocibles. `decompile` selecciona automáticamente la familia soportada. Código de salida: `0` éxito, `2` error de entrada/procesamiento, `130` interrupción.
+`extract` e `instrument` son herramientas de bajo nivel para envoltorios con límites directos reconocibles. `decompile` selecciona automáticamente la familia soportada. Código de salida: `0` éxito, `2` error de entrada/procesamiento, `1` error interno inesperado, `130` interrupción. Usa `--debug` (o `MOONVEIL_DEBUG=1`) para ver el traceback completo.
 
 ## Mejoras de esta versión
 
@@ -69,6 +73,15 @@ python -m moonveil import-protocol protocolo.txt -o artefactos
 - Simplificación aritmética conservadora: respeta comentarios, cadenas y expresiones con variables; conserva espacios necesarios entre tokens.
 - Reconstrucción de descargadores condicionada al flujo comprobado de registros y a que no devuelvan valores.
 - Pruebas sintéticas reproducibles y CI configurada para los tres sistemas operativos.
+
+## Muestra incluida
+
+`samples/raw-3.txt` es una entrada completa de MoonVeil 1.4.5 (93 KB). `analyze` la identifica sin necesidad de Luau; para recuperarla con Luau instalado:
+
+```sh
+python -m moonveil analyze samples/raw-3.txt
+python -m moonveil decompile samples/raw-3.txt -o recuperado.luau --artifacts artefactos
+```
 
 ## Interpretar los resultados
 
@@ -86,6 +99,8 @@ Los perfiles `structured-with-fallback-*` conservan un dispatcher donde no se pu
 ```sh
 python -B -m unittest discover -s tests -v
 ```
+
+Para contrastar el plegado de constantes con un intérprete Lua 5.3 o posterior (`lua`, `lua5.4` o `texlua`): `python tools/fuzz_arithmetic.py --count 20000`; sale con código 1 si algún resultado difiere.
 
 Las pruebas de integración ejecutan Luau y comprueban reconstrucción estática, salida observable, condicionales, entradas truncadas, errores y tiempos límite. Si no hay herramientas Luau, se omite ese grupo; para exigirlo:
 

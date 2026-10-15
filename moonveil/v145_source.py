@@ -475,11 +475,24 @@ def _static_string_replacements(
     return result, decoded, len(replacements), base64_decoder_name
 
 
+# Float modulo is implementation-specific at the edges (``a - floor(a/b)*b``
+# versus ``fmod`` with sign adjustment give different rounding for fractional
+# operands and different answers with infinities).  Both agree exactly on
+# integers of moderate size, so only those are folded.
+_MOD_LIMIT = 2.0**31
+
+
+def _finite(value: float) -> float:
+    if isinstance(value, complex) or not math.isfinite(value):
+        raise ValueError("non-finite or complex intermediate value")
+    return value
+
+
 def _eval_numeric(node: ast.AST) -> float:
     if isinstance(node, ast.Expression):
         return _eval_numeric(node.body)
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-        return float(node.value)
+        return _finite(float(node.value))
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
         value = _eval_numeric(node.operand)
         return value if isinstance(node.op, ast.UAdd) else -value
@@ -487,21 +500,28 @@ def _eval_numeric(node: ast.AST) -> float:
         left = _eval_numeric(node.left)
         right = _eval_numeric(node.right)
         if isinstance(node.op, ast.Add):
-            return left + right
+            return _finite(left + right)
         if isinstance(node.op, ast.Sub):
-            return left - right
+            return _finite(left - right)
         if isinstance(node.op, ast.Mult):
-            return left * right
+            return _finite(left * right)
         if isinstance(node.op, ast.Div):
             if right == 0:
                 raise ValueError("division by zero")
-            return left / right
+            return _finite(left / right)
         if isinstance(node.op, ast.Mod):
             if right == 0:
                 raise ValueError("modulo by zero")
-            return left % right
+            if not (
+                left.is_integer()
+                and right.is_integer()
+                and abs(left) <= _MOD_LIMIT
+                and abs(right) <= _MOD_LIMIT
+            ):
+                raise ValueError("float modulo is implementation-specific")
+            return _finite(left % right)
         if isinstance(node.op, ast.Pow):
-            return left**right
+            return _finite(left**right)
     raise ValueError("unsupported arithmetic expression")
 
 

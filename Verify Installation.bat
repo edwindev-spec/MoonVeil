@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+python -m moonveil doctor
 python -B -m unittest discover -s tests -v
 set "RESULT=%ERRORLEVEL%"
 echo.

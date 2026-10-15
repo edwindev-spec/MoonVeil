@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.13.0
+
+- Add `moonveil doctor` (with `--json`) to report Python, Luau runtime and compiler status; exits 2 when no runtime is usable.
+- `moonveil analyze` accepts several files; with `--json` it prints a list and records per-file errors instead of stopping at the first failure. Single-file output is unchanged.
+- Add global `--debug` flag and `MOONVEIL_DEBUG` for full tracebacks; unexpected errors now exit 1 with a short message, and deeply nested input exits 2 instead of dumping a traceback.
+- `Verify Installation.bat` and CI now run `moonveil doctor`.
+- Constant folding no longer rewrites expressions whose result depends on the Lua implementation: fractional `%` (floor formula vs `fmod` differ in rounding) and anything involving infinities (`5 % 1e999` used to become `5`). Integer `%` up to 2^31 is still folded.
+- Add `tools/fuzz_arithmetic.py`, a differential fuzz of the folder against a real Lua interpreter (0 mismatches over ~64,000 folded expressions with Lua 5.3).
+- Add tests for the new commands, the error boundary and the folding rules.
+- Bundle `samples/raw-3.txt` with static regression tests (version, payload size, Base64 decoding).
+
 ## 0.12.0
 
 - Import upstream 0.11.0 with MIT attribution and preserve its reconstruction engine.
